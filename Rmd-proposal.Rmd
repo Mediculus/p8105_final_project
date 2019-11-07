@@ -2,7 +2,6 @@
 title: "P8105 Data Science I - Finals Project Proposal"
 subtitle: "Exploration into The Use of Fragility Index Beyond Oncology (Tentative)"
 date: "`r format(Sys.time(), '%d %B %Y')`"
-tags: ["exploratory research", "final project"]
 output: github_document
 ---
 
