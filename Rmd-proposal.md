@@ -1,6 +1,6 @@
 P8105 Data Science I - Finals Project Proposal
 ================
-06 November 2019
+07 十一月 2019
 
 # Tentative Title
 
@@ -49,7 +49,7 @@ diseases.
 # Anticipated data sources
 
   - Search engines: Google Scholar, Pubmed, clinicaltrials.gov
-      - Review of ~25 trials with inclusion criterias of:
+      - Review of \~25 trials with inclusion criterias of:
           - Auto-immune disease-related phase 3 RCTs with a pairwise
             primary outcome, uses monoclonal antibody
           - Time period: 2007-2017  
@@ -83,7 +83,7 @@ diseases.
 
 # Planned Timeline
 
-  - Data scraping and processing: ~10 days (11/9/2019)
-  - Data analysis, review, graphical construction: ~7 days
-  - Web building: ~4 days
+  - Data scraping and processing: \~10 days (11/9/2019)
+  - Data analysis, review, graphical construction: \~7 days
+  - Web building: \~4 days
   - Debugging: all the time
