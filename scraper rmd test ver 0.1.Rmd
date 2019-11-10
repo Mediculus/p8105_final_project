@@ -36,6 +36,7 @@ theme_set(theme_minimal() +
 ```
 
 # Scrapper setup - draft 1
+Scraper test for google scholar
 
 ```{r}
 
@@ -65,6 +66,17 @@ test <- map(vec_url, read_page)
 unnested <- test %>% 
   tibble::enframe(name = NULL) %>% 
   unnest()
+
+```
+
+# Scraper test PubMed
+Scraper test for pubmed
+
+website issue as search address contains no page number...
+
+```{r}
+
+#https://www.ncbi.nlm.nih.gov/pubmed?term=((%222007%22%5BDate%20-%20Publication%5D%20%3A%20%222017%22%5BDate%20-%20Publication%5D))%20AND%20monoclonal%20antibody%20phase%203%5BTitle%2FAbstract%5D
 
 ```
 
