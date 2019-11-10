@@ -1,0 +1,70 @@
+---
+title: "Scrapper Draft"
+output: github_document
+---
+
+```{r setup, include = FALSE, message = FALSE, warning = FALSE}
+
+# global default settings for chunks
+knitr::opts_chunk$set(echo = TRUE, 
+                      fig.width = 10, 
+                      fig.align = "center",
+                      results = "asis"
+                      )
+
+# loaded packages; placed here to be able to load global settings
+Packages <- c("tidyverse", "dplyr", "rvest", "httr")
+invisible(lapply(Packages, library, character.only = TRUE))
+
+
+
+# global settings for color palettes
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+
+# theme global setting for ggplot
+theme_set(theme_minimal() + 
+            theme(legend.position = "bottom") +
+            theme(plot.title = element_text(hjust = 0.5, size = 12),
+                  plot.subtitle = element_text(hjust = 0.5, size = 8))
+          )
+
+```
+
+# Scrapper setup - draft 1
+
+```{r}
+
+# have to split link into 2 parts...
+url_base1 <- "https://scholar.google.com/scholar?start="
+url_base2 <- "&q=monoclonal+antibody+phase+3&hl=en&as_sdt=0,33&as_ylo=2007&as_yhi=2017&lookup=0"
+
+# adds the search term by 10s (obtained by evaluating scholar's http address)
+vec_url <- str_c(url_base1, seq(0, 100, 10), url_base2)
+
+# scraper fn
+read_page <- function(url) {
+  
+  h = read_html(url)
+  
+  title = h %>%
+    html_nodes(".gs_rt a") %>%
+    html_text()
+  
+  data_frame(title)
+}
+
+# map read test
+test <- map(vec_url, read_page)
+
+# unnested df test (success)
+unnested <- test %>% 
+  tibble::enframe(name = NULL) %>% 
+  unnest()
+
+```
+
