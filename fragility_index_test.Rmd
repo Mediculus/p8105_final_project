@@ -1,0 +1,119 @@
+---
+title: "fragility_index_test"
+author: "Bryan Bunning"
+date: "11/12/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+to grab this data, I did an advanced search on clinicaltrials.gov and downloaded all search results!
+
+```{r}
+mydat <- read_csv(file = "SearchResults(1).csv") %>%
+  filter(
+    str_detect(Interventions, "Placebo")
+  )
+
+mydat %>% distinct(Conditions) %>% view()
+```
+
+HTML scraping tags
+
+`#EXPAND-outcome-data-1 .labelSubtle` -this is the thing that needs to have participants or "Unit of Measure: Participants"
+
+`#EXPAND-outcome-data-1 td.de-outcomeLabelCell` -this is arm description for primary outcome
+`#EXPAND-outcome-data-1 tbody:nth-child(2) th` -this is 
+
+
+
+```{r test_rclinicaltrials}
+library(devtools)
+#install_github("sachsmc/rclinicaltrials")
+library(rclinicaltrials)
+test <- clinicaltrials_download(query = 'asthma', count = 10, include_results = TRUE)
+
+test$study_information$outcomes
+
+myoutcomes<- test$study_information$outcomes
+#NCT00182143
+
+test2<- clinicaltrials_download(query = 'NCT01123083', count = 1, include_results = TRUE)
+
+test2$study_results$outcome_data$measure
+outcomes<- test2$study_results$outcome_data
+
+test3 <- clinicaltrials_download(query = 'NCT00195702', count = 1, include_results = TRUE)
+
+outcomes2 <- test3$study_results$outcome_data
+
+outcomes3 <- test3$study_results$baseline_data
+
+
+
+```
+
+
+
+
+
+
+
+#webscraping from a website
+
+how to do api call over multiple pages so you dont get screwed by api call limits
+
+```{r}
+get_all_inspections = function(url) {
+  
+  all_inspections = vector("list", length = 0)
+  
+  loop_index = 1
+  chunk_size = 50000
+  DO_NEXT = TRUE
+  
+  while (DO_NEXT) {
+    message("Getting data, page ", loop_index)
+    
+    all_inspections[[loop_index]] = 
+      GET(url,
+          query = list(`$order` = "zipcode",
+                       `$limit` = chunk_size,
+                       `$offset` = as.integer((loop_index - 1) * chunk_size)
+                       )
+          ) %>%
+      content("text") %>%
+      fromJSON() %>%
+      as_tibble()
+    
+    DO_NEXT = dim(all_inspections[[loop_index]])[1] == chunk_size
+    loop_index = loop_index + 1
+  }
+  
+  all_inspections
+  
+}
+
+url = "https://data.cityofnewyork.us/resource/43nn-pn8j.json"
+
+nyc_inspections = get_all_inspections(url) %>%
+  bind_rows()
+```
+
+another example
+```{r}
+url <- "https://www.amazon.com/product-reviews/B00005JNBQ/ref=cm_cr_arp_d_viewopt_rvwer?ie=UTF8&reviewerType=avp_only_reviews&sortBy=recent&pageNumber=1"
+
+dynamite_html <- read_html(url)
+
+review_titles <- 
+  dynamite_html %>%
+  html_nodes(".a-text-bold span") %>%
+  html_text()
+```
+
