@@ -80,3 +80,24 @@ website issue as search address contains no page number...
 
 ```
 
+-- scraping from pubmed scrapped --
+
+# test for search results csv
+
+clean up url to obtain nct...then potentially scrape stuff using those.
+will filter out things first
+
+```{r}
+
+test <- read_csv("SearchResults(1).csv") %>% 
+  janitor::clean_names() %>% 
+  mutate(
+    url = str_replace(url, "https://ClinicalTrials.gov/show/", "")
+  ) %>% 
+  select(-locations)
+
+test2 <- test %>% 
+  distinct(conditions)
+
+```
+
