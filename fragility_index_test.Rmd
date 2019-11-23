@@ -48,40 +48,40 @@ str_detect(review_titles, "[pP]atients")
 
 #then we scrap the actual data
 
-trial_html %>% html_nodes("#EXPAND-outcome-data-1 tbody:nth-child(2) th") %>%
-  html_text()
 
 #important for col names
+#this should always has the first term be "\n    Arm/Group Title \n  " which we will ignore
 col_names <- trial_html %>% html_nodes("#EXPAND-outcome-data-1 tbody:nth-child(2) tr:nth-child(1) .de-outcomeLabelCell") %>%
   html_text()
+col_names
 
-#important for rownames
+#important for rownames #ideally this should be participants and unit of measure
 row_names <- trial_html %>% html_nodes("#EXPAND-outcome-data-1 .labelSubtle , #EXPAND-outcome-data-1 tbody:nth-child(2) tr:nth-child(4) .de-outcomeLabelCell
 ") %>%
   html_text()
 row_names
 
-
-
-num_cols<-trial_html %>% html_nodes("#EXPAND-outcome-data-1 td.de-outcomeLabelCell") %>%
-  html_text() 
-num_cols
-length(num_cols)
-
+#scrape the actual data, with variable table length
 test123<- trial_html %>% html_nodes("#EXPAND-outcome-data-1 .de-numValue_outcomeDataCell") %>%
   html_text()
 
+#get rid of dumb characters
 test123<- test123 %>% as.numeric()
-as.matrix(test123, ncol=length(col_names[-1]), nrow=2, byrow=TRUE)
 
-my_matrix<- matrix(test123, ncol=length(col_names[-1]), nrow=2, byrow=TRUE)
+#make into a matrix of correct size 
 
+my_matrix<- matrix(test123, ncol=length(col_names[-1]), nrow=length(row_names), byrow=TRUE)
 my_matrix
 
 my_df<- as.tibble(my_matrix)
 names(my_df) <- col_names[-1]
+#a tibble doesnt show rownames when you call it but it is saved into R
 rownames(my_df) <- row_names
 
+
+
+
+###### maybe useful information
 has_rownames(my_df)
 my_df
 rownames(my_df)
@@ -90,6 +90,10 @@ my_df
 test123
 as.data.frame(test123, col.names=(col_names[-1]))
 str_remove()
+
+unsure_if_useful<-trial_html %>% html_nodes("#EXPAND-outcome-data-1 td.de-outcomeLabelCell") %>%
+  html_text() 
+length()
 
 as.data.frame(x, row.names = NULL, optional = FALSE, ...,
               cut.names = FALSE, col.names = names(x), fix.empty.names = TRUE,
