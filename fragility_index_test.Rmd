@@ -62,11 +62,11 @@ row_names <- trial_html %>% html_nodes("#EXPAND-outcome-data-1 .labelSubtle , #E
 row_names
 
 #scrape the actual data, with variable table length
-test123<- trial_html %>% html_nodes("#EXPAND-outcome-data-1 .de-numValue_outcomeDataCell") %>%
+test123 <- trial_html %>% html_nodes("#EXPAND-outcome-data-1 .de-numValue_outcomeDataCell") %>%
   html_text()
 
 #get rid of dumb characters
-test123<- test123 %>% as.numeric()
+test123 <- test123 %>% as.numeric()
 
 #make into a matrix of correct size 
 
@@ -77,6 +77,9 @@ my_df<- as.tibble(my_matrix)
 names(my_df) <- col_names[-1]
 #a tibble doesnt show rownames when you call it but it is saved into R
 rownames(my_df) <- row_names
+
+
+#what we should do next is store this into a listcol, and then iterate to the next website!
 
 
 
