@@ -36,15 +36,15 @@ url_test <- "https://clinicaltrials.gov/ct2/show/results/NCT00195702"
 
 trial_html <- read_html(url_test)
 
-review_titles <- 
+outcome_measure <- 
   trial_html %>%
   html_nodes("#EXPAND-outcome-data-1 .labelSubtle") %>%
   html_text()
 
 #once we do about, grab if statement with 
-str_detect(review_titles,"[pP]articipants")
-str_detect(review_titles, "[pP]atients")
-
+str_detect(outcome_measure,"[pP]articipants")
+str_detect(outcome_measure, "[pP]atients")
+#if either of these return true, continue to scraping, else next()
 
 #then we scrap the actual data
 
@@ -80,10 +80,10 @@ rownames(my_df) <- row_names
 
 
 #what we should do next is store this into a listcol, and then iterate to the next website!
+```
 
 
-
-
+```{r}
 ###### maybe useful information
 has_rownames(my_df)
 my_df
