@@ -101,3 +101,9 @@ test2 <- test %>%
 
 ```
 
+
+# function for list column building 
+```{r}
+
+```
+
