@@ -1,6 +1,6 @@
 ---
-title: "Scrapper Draft"
-output: github_document
+title: "Scraper Draft"
+output: html_document
 ---
 
 ```{r setup, include = FALSE, message = FALSE, warning = FALSE}
@@ -35,75 +35,195 @@ theme_set(theme_minimal() +
 
 ```
 
-# Scrapper setup - draft 1
-Scraper test for google scholar
+# Attempt to Scrape from Google Scholar
+Given the ease of access to Google Scholar (GS), we first attempted to scrape our sources from the site. 
 
-```{r}
+```{r google_schol_scrape}
 
 # have to split link into 2 parts...
-url_base1 <- "https://scholar.google.com/scholar?start="
-url_base2 <- "&q=monoclonal+antibody+phase+3&hl=en&as_sdt=0,33&as_ylo=2007&as_yhi=2017&lookup=0"
+gs_url_base1 <- "https://scholar.google.com/scholar?start="
+gs_url_base2 <- "&q=monoclonal+antibody+phase+3&hl=en&as_sdt=0,33&as_ylo=2007&as_yhi=2017&lookup=0"
 
 # adds the search term by 10s (obtained by evaluating scholar's http address)
-vec_url <- str_c(url_base1, seq(0, 100, 10), url_base2)
+gs_vec_url <- str_c(gs_url_base1, seq(0, 100, 10), gs_url_base2)
+
+```
+
+The code above splits Google's search commands into two partitions so that we can insert the search numbers. We then create an object that creates the desired "links" containing our searches. This is then incorporated into an auto-scraping function below. 
+
+```{r scraping_fn}
 
 # scraper fn
 read_page <- function(url) {
   
-  h = read_html(url)
+  h = read_html(url)               # reads url input
   
   title = h %>%
-    html_nodes(".gs_rt a") %>%
+    html_nodes(".gs_rt a") %>%     # pulls the specific html tag (for titles)
     html_text()
   
-  data_frame(title)
+  data_frame(title)                # turns scraped data into a dataframe
 }
 
 # map read test
-test <- map(vec_url, read_page)
+gs_test <- map(gs_vec_url, read_page)
 
 # unnested df test (success)
-unnested <- test %>% 
+unnested_gs <- gs_test %>% 
   tibble::enframe(name = NULL) %>% 
   unnest()
 
+head(unnested_gs, n = 3L)
+
 ```
+
+As seen above, the code was successful in scraping the titles from GS. However, an apparent issue with this is that we're unable to get the links to the actual paper. Furthermore, the various sources of the article will be highly varied when accessing these articles. Additionally, we're unable to exclusively scrape the year of publication, which further worsens the result. 
+
+Given the apparent high ceiling to scrape via GS, we decided to stop using GS and tried PubMed scraping.
 
 # Scraper test PubMed
-Scraper test for pubmed
+Attempting to scrape PubMed results for our relevant issues quickly comes to a halt because we noticed that as we try to search results, their html does **NOT** change or provide a page number. We quickly scraped this from our tries. 
 
-website issue as search address contains no page number...
+# Scraping from clinicaltrials.gov
 
-```{r}
+We first obtained (downloaded) a `.csv` file from clinicaltrials.gov that contained our advanced search options:
 
-#https://www.ncbi.nlm.nih.gov/pubmed?term=((%222007%22%5BDate%20-%20Publication%5D%20%3A%20%222017%22%5BDate%20-%20Publication%5D))%20AND%20monoclonal%20antibody%20phase%203%5BTitle%2FAbstract%5D
+* options...
 
-```
+After obtaining this, we then read this into R and clean-up the relevant part of this file. In particular, we have to clean the provided url as we're only interested in the trial ID. We further filter the trials to those that has a "Placebo" arm. 
 
--- scraping from pubmed scrapped --
+```{r ctgov_data_read}
 
-# test for search results csv
-
-clean up url to obtain nct...then potentially scrape stuff using those.
-will filter out things first
-
-```{r}
-
-test <- read_csv("SearchResults(1).csv") %>% 
+ctgov_scrape_test <- read_csv("SearchResults(1).csv") %>%             # read csv
   janitor::clean_names() %>% 
   mutate(
-    url = str_replace(url, "https://ClinicalTrials.gov/show/", "")
+    url = str_replace(url, "https://ClinicalTrials.gov/show/", "")    # keep trial ID only
   ) %>% 
-  select(-locations)
+  select(-locations) %>%                                              # remove location; irrelevant
+  filter(str_detect(Interventions, "Placebo"))
 
-test2 <- test %>% 
-  distinct(conditions)
+ctgov_scrape_test %>% 
+  distinct(Conditions) %>% 
+  view()
+
+```
+
+Now our "database" that contains relevant clinical trials are ready. Before we continue, we need to obtain the html tags from clinicaltrials.gov which contains our variables of interest. With the help of SelectorGadget, we managed to isolate the tags to contain:
+
+* `#EXPAND-outcome-data-1 .labelSubtle` : label within the table this is the thing that needs to have participants or "Unit of Measure: Participants"
+* `#EXPAND-outcome-data-1 td.de-outcomeLabelCell` : this is arm description for primary outcome
+* `#EXPAND-outcome-data-1 tbody:nth-child(2) th` : this is description of table
+
+
+### Test Scrape
+
+We first test if our scraping works on a single url.
+
+```{r ctgov_test1}
+
+# initial condition to test
+outcome_measure <- 
+  read_html("https://clinicaltrials.gov/ct2/show/results/NCT00195702") %>% 
+  html_nodes("#EXPAND-outcome-data-1 .labelSubtle") %>% 
+  html_text()
+
+
+
+# a yes-no test to either one which signals to scrape or skip.
+str_detect(outcome_measure,"[pP]articipants")
+str_detect(outcome_measure, "[pP]atients")
+
+# if-else function to check whether or not we need to scrape a particular trial ID
+#if (str_detect(outcome_measure,"[pP]articipants") != TRUE & str_detect(outcome_measure, "[pP]atients") != TRUE) {
+#  next()
+#} else if (str_detect(outcome_measure,"[pP]articipants") == TRUE | str_detect(outcome_measure, "[pP]atients") == #TRUE) {
+#  # scrape here
+#}
+
+
+# scraping the data
+
+#important for col names
+#this should always has the first term be "\n    Arm/Group Title \n  " which we will ignore
+col_names <- trial_html %>% html_nodes("#EXPAND-outcome-data-1 tbody:nth-child(2) tr:nth-child(1) .de-outcomeLabelCell") %>%
+  html_text()
+col_names
+
+#important for rownames #ideally this should be participants and unit of measure
+row_names <- trial_html %>% html_nodes("#EXPAND-outcome-data-1 .labelSubtle , #EXPAND-outcome-data-1 tbody:nth-child(2) tr:nth-child(4) .de-outcomeLabelCell
+") %>%
+  html_text()
+row_names
+
+#scrape the actual data, with variable table length
+test123 <- trial_html %>% html_nodes("#EXPAND-outcome-data-1 .de-numValue_outcomeDataCell") %>%
+  html_text()
+
+#get rid of dumb characters
+test123 <- test123 %>% as.numeric()
+
+#make into a matrix of correct size 
+
+my_matrix<- matrix(test123, ncol=length(col_names[-1]), nrow=length(row_names), byrow=TRUE)
+my_matrix
+
+my_df<- as.tibble(my_matrix)
+names(my_df) <- col_names[-1]
+#a tibble doesnt show rownames when you call it but it is saved into R
+rownames(my_df) <- row_names
+
+
+#what we should do next is store this into a listcol, and then iterate to the next website!
+```
+
+
+```{r}
+###### maybe useful information
+has_rownames(my_df)
+my_df
+rownames(my_df)
+
+my_df
+test123
+as.data.frame(test123, col.names=(col_names[-1]))
+str_remove()
+
+unsure_if_useful<-trial_html %>% html_nodes("#EXPAND-outcome-data-1 td.de-outcomeLabelCell") %>%
+  html_text() 
+length()
+
+as.data.frame(x, row.names = NULL, optional = FALSE, ...,
+              cut.names = FALSE, col.names = names(x), fix.empty.names = TRUE,
+              stringsAsFactors = default.stringsAsFactors())
 
 ```
 
 
-# function for list column building 
-```{r}
+
+
+```{r test_rclinicaltrials}
+library(devtools)
+#install_github("sachsmc/rclinicaltrials")
+library(rclinicaltrials)
+test <- clinicaltrials_download(query = 'asthma', count = 10, include_results = TRUE)
+
+test$study_information$outcomes
+
+myoutcomes<- test$study_information$outcomes
+#NCT00182143
+
+test2<- clinicaltrials_download(query = 'NCT01123083', count = 1, include_results = TRUE)
+
+test2$study_results$outcome_data$measure
+outcomes<- test2$study_results$outcome_data
+
+test3 <- clinicaltrials_download(query = 'NCT00195702', count = 1, include_results = TRUE)
+
+outcomes2 <- test3$study_results$outcome_data
+
+outcomes3 <- test3$study_results$baseline_data
+
+
 
 ```
 
