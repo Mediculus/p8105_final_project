@@ -82,7 +82,7 @@ As seen above, the code was successful in scraping the titles from GS. However, 
 Given the apparent high ceiling to scrape via GS, we decided to stop using GS and tried PubMed scraping.
 
 # Scraper test PubMed
-Attempting to scrape PubMed results for our relevant issues quickly comes to a halt because we noticed that as we try to search results, their html does **NOT** change or provide a page number. We quickly scraped this from our tries. 
+Attempting to scrape PubMed results for our relevant issues quickly comes to a halt because we noticed that as we try to search results, their html does **NOT** change or provide a page number. We quickly scraped this from our viable methods to obtain our data. 
 
 # Scraping from clinicaltrials.gov
 
@@ -100,10 +100,10 @@ ctgov_scrape_test <- read_csv("SearchResults(1).csv") %>%             # read csv
     url = str_replace(url, "https://ClinicalTrials.gov/show/", "")    # keep trial ID only
   ) %>% 
   select(-locations) %>%                                              # remove location; irrelevant
-  filter(str_detect(Interventions, "Placebo"))
+  filter(str_detect(interventions, "Placebo"))
 
 ctgov_scrape_test %>% 
-  distinct(Conditions) %>% 
+  distinct(conditions) %>% 
   view()
 
 ```
@@ -121,25 +121,16 @@ We first test if our scraping works on a single url.
 
 ```{r ctgov_test1}
 
-# initial condition to test
-outcome_measure <- 
-  read_html("https://clinicaltrials.gov/ct2/show/results/NCT00195702") %>% 
-  html_nodes("#EXPAND-outcome-data-1 .labelSubtle") %>% 
-  html_text()
+# function to scrape from 1 url test that has "participants"
+outcome_measure <- function (data) {
+  measure = read_html("https://ClinicalTrials.gov/show/results/NCT00195702") %>%
+    html_nodes("#EXPAND-outcome-data-1 .labelSubtle") %>% 
+    html_text()
+}
 
-
-
-# a yes-no test to either one which signals to scrape or skip.
-str_detect(outcome_measure,"[pP]articipants")
-str_detect(outcome_measure, "[pP]atients")
-
-# if-else function to check whether or not we need to scrape a particular trial ID
-#if (str_detect(outcome_measure,"[pP]articipants") != TRUE & str_detect(outcome_measure, "[pP]atients") != TRUE) {
-#  next()
-#} else if (str_detect(outcome_measure,"[pP]articipants") == TRUE | str_detect(outcome_measure, "[pP]atients") == #TRUE) {
-#  # scrape here
-#}
-
+# cleans the output
+test_scrape <- outcome_measure(ctgov_scrape_test$url) %>% 
+  str_replace("Unit of Measure: ", "")
 
 # scraping the data
 
@@ -224,6 +215,59 @@ outcomes2 <- test3$study_results$outcome_data
 outcomes3 <- test3$study_results$baseline_data
 
 
+
+```
+
+### Building the Function
+
+```{r function_build1}
+
+############## scraper function indiscriminate read -- start
+
+# function to scrape from url
+outcome_measure <- function (data) {
+  measure = read_html(str_c("https://ClinicalTrials.gov/show/results/", data)) %>%
+    html_nodes("#EXPAND-outcome-data-1 .labelSubtle") %>% 
+    html_text()
+}
+
+# maps the function to each url
+test_scrape <- ctgov_scrape_test %>% 
+  mutate(
+    unit_measure = map(pull(ctgov_scrape_test, url), outcome_measure)
+  )
+
+######################### -- end
+
+
+
+
+
+############### conditionals to read certain urls only; if label contains participants/patients -- start
+
+# split to prevent remapping over and over during test
+test_scrape_condition <- test_scrape %>% 
+  mutate(
+    unit_measure = str_replace("Unit of Measure: ", "", unit_measure)
+    #has_people = str_detect(unit_measure, "[pP]articipants|[pP]atients")
+  ) %>% 
+  filter(str_detect(unit_measure, "[pP]articipants|[pP]atients"))
+
+################# -- end
+
+
+
+
+
+# if-else function to check whether or not we need to scrape a particular trial ID
+#if (str_detect(outcome_measure,"[pP]articipants") != TRUE & str_detect(outcome_measure, "[pP]atients") != TRUE) {
+#  next()
+#} else if (str_detect(outcome_measure,"[pP]articipants") == TRUE | str_detect(outcome_measure, "[pP]atients") == #TRUE) {
+#  # scrape here
+#}
+
+
+# scraping the data
 
 ```
 
