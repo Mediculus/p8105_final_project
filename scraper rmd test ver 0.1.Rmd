@@ -94,7 +94,7 @@ After obtaining this, we then read this into R and clean-up the relevant part of
 
 ```{r ctgov_data_read}
 
-ctgov_scrape_test <- read_csv("SearchResults(1).csv") %>%             # read csv
+ctgov_scrape_test <- read_csv(".SearchResults(1).csv") %>%             # read csv
   janitor::clean_names() %>% 
   mutate(
     url = str_replace(url, "https://ClinicalTrials.gov/show/", "")    # keep trial ID only
@@ -136,18 +136,22 @@ test_scrape <- outcome_measure(ctgov_scrape_test$url) %>%
 
 #important for col names
 #this should always has the first term be "\n    Arm/Group Title \n  " which we will ignore
-col_names <- trial_html %>% html_nodes("#EXPAND-outcome-data-1 tbody:nth-child(2) tr:nth-child(1) .de-outcomeLabelCell") %>%
+col_names <- read_html("https://ClinicalTrials.gov/show/results/NCT00195702") %>% 
+  html_nodes("#EXPAND-outcome-data-1 tbody:nth-child(2) tr:nth-child(1) .de-outcomeLabelCell") %>%
   html_text()
+
 col_names
 
 #important for rownames #ideally this should be participants and unit of measure
-row_names <- trial_html %>% html_nodes("#EXPAND-outcome-data-1 .labelSubtle , #EXPAND-outcome-data-1 tbody:nth-child(2) tr:nth-child(4) .de-outcomeLabelCell
-") %>%
+row_names <- read_html("https://ClinicalTrials.gov/show/results/NCT00195702") %>% 
+  html_nodes("#EXPAND-outcome-data-1 .labelSubtle , #EXPAND-outcome-data-1 tbody:nth-child(2) tr:nth-child(4) .de-outcomeLabelCell") %>%
   html_text()
+
 row_names
 
 #scrape the actual data, with variable table length
-test123 <- trial_html %>% html_nodes("#EXPAND-outcome-data-1 .de-numValue_outcomeDataCell") %>%
+test123 <- read_html("https://ClinicalTrials.gov/show/results/NCT00195702") %>% 
+  html_nodes("#EXPAND-outcome-data-1 .de-numValue_outcomeDataCell") %>%
   html_text()
 
 #get rid of dumb characters
@@ -220,16 +224,62 @@ outcomes3 <- test3$study_results$baseline_data
 
 ### Building the Function
 
+Working version without rownames
+dated 11/30/19 - 1:06 AM - KSW
+
 ```{r function_build1}
 
 ############## scraper function indiscriminate read -- start
 
 # function to scrape from url
-outcome_measure <- function (data) {
-  measure = read_html(str_c("https://ClinicalTrials.gov/show/results/", data)) %>%
+outcome_measure <- function(data) {
+  
+  # stores our list of urls
+  site = read_html(str_c("https://ClinicalTrials.gov/show/results/", data))
+  
+  # pulls our "measure" detector
+  measure = site %>%
     html_nodes("#EXPAND-outcome-data-1 .labelSubtle") %>% 
-    html_text()
+    html_text() %>% 
+    str_replace("Unit of Measure: ", "")
+  
+  # if/else function that skips to the next url if our measure does not contain "participants" or "patients"
+  if (!str_detect(measure, "[pP]articipants|[pP]atients")) {
+    next()        # if FALSE, move to next
+  } else {        # otherwise...
+    
+    # pulls relevant column names
+    col_names = site %>%
+      html_nodes("#EXPAND-outcome-data-1 tbody:nth-child(2) tr:nth-child(1) .de-outcomeLabelCell") %>%
+      html_text()
+    
+    # pulls row names (might be unnecessary)
+    row_names = site %>% 
+      html_nodes("#EXPAND-outcome-data-1 .labelSubtle , #EXPAND-outcome-data-1 tbody:nth-child(2) tr:nth-child(4) .de-outcomeLabelCell") %>% 
+      html_text()
+    
+    # pulls the actual numbers (content)
+    content = site %>% 
+      html_nodes("#EXPAND-outcome-data-1 .de-numValue_outcomeDataCell") %>% 
+      html_text() %>% 
+      as.numeric()
+    
+    # makes a dataframe using matrix
+    df = matrix(content, 
+                ncol = length(col_names[-1]), 
+                nrow = length(row_names), 
+                byrow = TRUE) %>% 
+      as_tibble() 
+    
+    # adds column names
+    names(df) <- col_names[-1]
+    #rownames(df) <- row_names
+    
+    df
+  }
 }
+
+test_scrape2 <- outcome_measure("NCT00195702")
 
 # maps the function to each url
 test_scrape <- ctgov_scrape_test %>% 
@@ -254,20 +304,6 @@ test_scrape_condition <- test_scrape %>%
   filter(str_detect(unit_measure, "[pP]articipants|[pP]atients"))
 
 ################# -- end
-
-
-
-
-
-# if-else function to check whether or not we need to scrape a particular trial ID
-#if (str_detect(outcome_measure,"[pP]articipants") != TRUE & str_detect(outcome_measure, "[pP]atients") != TRUE) {
-#  next()
-#} else if (str_detect(outcome_measure,"[pP]articipants") == TRUE | str_detect(outcome_measure, "[pP]atients") == #TRUE) {
-#  # scrape here
-#}
-
-
-# scraping the data
 
 ```
 
