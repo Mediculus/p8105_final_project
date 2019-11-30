@@ -94,7 +94,7 @@ After obtaining this, we then read this into R and clean-up the relevant part of
 
 ```{r ctgov_data_read}
 
-ctgov_scrape_test <- read_csv(".SearchResults(1).csv") %>%             # read csv
+ctgov_scrape_test <- read_csv("SearchResults(1).csv") %>%             # read csv
   janitor::clean_names() %>% 
   mutate(
     url = str_replace(url, "https://ClinicalTrials.gov/show/", "")    # keep trial ID only
@@ -245,7 +245,8 @@ outcome_measure <- function(data) {
   
   # if/else function that skips to the next url if our measure does not contain "participants" or "patients"
   if (!str_detect(measure, "[pP]articipants|[pP]atients")) {
-    next()        # if FALSE, move to next
+    NA
+    # next()        # if FALSE, move to next
   } else {        # otherwise...
     
     # pulls relevant column names
@@ -279,13 +280,12 @@ outcome_measure <- function(data) {
   }
 }
 
-test_scrape2 <- outcome_measure("NCT00195702")
-
-# maps the function to each url
-test_scrape <- ctgov_scrape_test %>% 
+test_scrape_2 <- ctgov_scrape_test %>% 
   mutate(
-    unit_measure = map(pull(ctgov_scrape_test, url), outcome_measure)
-  )
+    scrape_data = map(url, outcome_measure)
+  ) %>% 
+  filter(!is.na(scrape_data))
+
 
 ######################### -- end
 
