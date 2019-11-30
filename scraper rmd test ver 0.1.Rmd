@@ -171,6 +171,12 @@ rownames(my_df) <- row_names
 #what we should do next is store this into a listcol, and then iterate to the next website!
 ```
 
+### other stuff to be looked at
+
+Alternative html tags that might capture the actual data we need??
+.de-numValue_outcomeDataCell
+.de-numValue_outcomeDataCell , tr:nth-child(5) .de-outcomeDataCell
+
 
 ```{r}
 ###### maybe useful information
