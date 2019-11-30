@@ -229,8 +229,6 @@ dated 11/30/19 - 1:06 AM - KSW
 
 ```{r function_build1}
 
-############## scraper function indiscriminate read -- start
-
 # function to scrape from url
 outcome_measure <- function(data) {
   
@@ -245,9 +243,10 @@ outcome_measure <- function(data) {
   
   # if/else function that skips to the next url if our measure does not contain "participants" or "patients"
   if (!str_detect(measure, "[pP]articipants|[pP]atients")) {
-    NA
-    # next()        # if FALSE, move to next
-  } else {        # otherwise...
+    
+    NA            # returns NA if it doesn't exist
+    
+  } else {
     
     # pulls relevant column names
     col_names = site %>%
@@ -276,34 +275,17 @@ outcome_measure <- function(data) {
     names(df) <- col_names[-1]
     #rownames(df) <- row_names
     
+    # returns the df output
     df
   }
 }
 
+# testing our function using purrr::map function.
 test_scrape_2 <- ctgov_scrape_test %>% 
   mutate(
     scrape_data = map(url, outcome_measure)
   ) %>% 
-  filter(!is.na(scrape_data))
-
-
-######################### -- end
-
-
-
-
-
-############### conditionals to read certain urls only; if label contains participants/patients -- start
-
-# split to prevent remapping over and over during test
-test_scrape_condition <- test_scrape %>% 
-  mutate(
-    unit_measure = str_replace("Unit of Measure: ", "", unit_measure)
-    #has_people = str_detect(unit_measure, "[pP]articipants|[pP]atients")
-  ) %>% 
-  filter(str_detect(unit_measure, "[pP]articipants|[pP]atients"))
-
-################# -- end
+  filter(!is.na(scrape_data))               # necessary step to clear out the NA rows.
 
 ```
 
